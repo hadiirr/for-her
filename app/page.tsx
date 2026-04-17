@@ -42,13 +42,16 @@ function fmt(ms?: number) {
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
-const FALLING_HEARTS = Array.from({ length: 12 }, (_, i) => ({
+const SYMBOLS = ['💕', '🩷', '💗', '💓', '💞', '🌸', '✨', '💝', '🫧', '💫'];
+const FALLING_HEARTS = Array.from({ length: 16 }, (_, i) => ({
   id: i,
-  left: `${Math.floor(Math.random() * 90 + 5)}%`,
-  delay: `${(Math.random() * 8).toFixed(1)}s`,
-  duration: `${(7 + Math.random() * 6).toFixed(1)}s`,
-  size: Math.floor(Math.random() * 10 + 10),
-  opacity: (0.08 + Math.random() * 0.12).toFixed(2),
+  symbol: SYMBOLS[i % SYMBOLS.length],
+  left: `${5 + (i * 6) % 90}%`,
+  delay: `${((i * 1.3) % 10).toFixed(1)}s`,
+  duration: `${(8 + (i * 0.7) % 7).toFixed(1)}s`,
+  size: 14 + (i * 3) % 14,
+  opacity: (0.18 + (i * 0.04) % 0.22).toFixed(2),
+  sway: i % 2 === 0 ? 'sway-left' : 'sway-right',
 }));
 
 export default function Home() {
@@ -113,10 +116,10 @@ export default function Home() {
       {FALLING_HEARTS.map(h => (
         <div
           key={h.id}
-          className="falling-heart"
-          style={{ left: h.left, animationDelay: h.delay, animationDuration: h.duration, opacity: Number(h.opacity) }}
+          className={`falling-heart ${h.sway}`}
+          style={{ left: h.left, animationDelay: h.delay, animationDuration: h.duration, opacity: Number(h.opacity), fontSize: h.size }}
         >
-          <HeartFilled size={h.size} className="text-blush-400" />
+          {h.symbol}
         </div>
       ))}
 
