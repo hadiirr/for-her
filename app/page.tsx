@@ -143,7 +143,7 @@ export default function Home() {
             </IconTile>
             <div className="min-w-0">
               <p className="font-serif text-2xl text-blush-500 leading-tight truncate">{status?.text || 'thinking of you'}</p>
-              {status?.mood && <p className="text-sm text-ink/60 mt-0.5">feeling <em className="italic text-blush-400">{status.mood}</em></p>}
+              {status?.mood && <p className="text-sm text-ink/60 mt-0.5">feelin <em className="italic text-blush-400">{status.mood}</em></p>}
               {status?.updatedAt && <p className="text-[11px] text-ink/40 mt-1">updated {timeAgo(status.updatedAt)}</p>}
             </div>
           </div>

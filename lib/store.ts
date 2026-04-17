@@ -40,8 +40,8 @@ const DEFAULT: DataShape = {
   status: {
     text: 'thinking of you',
     emoji: 'icon:flower',
-    mood: 'soft',
-    updatedAt: new Date(0).toISOString(),
+    mood: 'wittle',
+    updatedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
   },
   config: {
     herName: 'my love',
