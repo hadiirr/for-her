@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { renderStatusGlyph, Icons } from '@/lib/icons';
 
@@ -60,6 +60,8 @@ export default function Home() {
   const [config, setConfig] = useState<Config | null>(null);
   const [note, setNote] = useState('');
   const [kissed, setKissed] = useState(false);
+  const [liveProgress, setLiveProgress] = useState(0);
+  const fetchedAtRef = React.useRef<number>(0);
 
   const target = config?.countdownTarget || new Date(Date.now() + 86400000 * 7).toISOString();
   const { days, hours, minutes, seconds } = useCountdown(target);
@@ -74,6 +76,8 @@ export default function Home() {
           fetch('/api/notes?today=1').then(r => r.json()),
         ]);
         setNp(n); setStatus(s); setConfig(c); setNote(nt.note || '');
+        fetchedAtRef.current = Date.now();
+        setLiveProgress(n?.progressMs || 0);
         if (c?.theme) document.documentElement.setAttribute('data-theme', c.theme);
       } catch {}
     };
@@ -81,6 +85,15 @@ export default function Home() {
     const id = setInterval(load, 20000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!np?.isPlaying) return;
+    const tick = setInterval(() => {
+      const elapsed = Date.now() - fetchedAtRef.current;
+      setLiveProgress((np.progressMs || 0) + elapsed);
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [np]);
 
   async function sendKiss(e: React.MouseEvent<HTMLButtonElement>) {
     setKissed(true);
@@ -100,10 +113,6 @@ export default function Home() {
     fetch('/api/kiss', { method: 'POST' });
     setTimeout(() => setKissed(false), 2000);
   }
-
-  const progressPct = np?.progressMs && np?.durationMs
-    ? Math.min(100, (np.progressMs / np.durationMs) * 100)
-    : 0;
 
   const dateStr = new Date(target).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -170,11 +179,14 @@ export default function Home() {
                 </div>
                 {np?.isPlaying && np.durationMs && (
                   <div className="mt-4">
-                    <div className="h-1 bg-blush-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-blush-400 to-blush-500 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
+                    <div className="h-1.5 bg-blush-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blush-400 to-blush-500 rounded-full"
+                        style={{ width: `${Math.min(100, (liveProgress / np.durationMs) * 100)}%`, transition: 'width 1s linear' }}
+                      />
                     </div>
                     <div className="flex justify-between text-[10px] text-ink/40 mt-1.5 tabular-nums">
-                      <span>{fmt(np.progressMs)}</span><span>{fmt(np.durationMs)}</span>
+                      <span>{fmt(liveProgress)}</span><span>{fmt(np.durationMs)}</span>
                     </div>
                   </div>
                 )}
