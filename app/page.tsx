@@ -42,6 +42,15 @@ function fmt(ms?: number) {
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
+const FALLING_HEARTS = Array.from({ length: 12 }, (_, i) => ({
+  id: i,
+  left: `${Math.floor(Math.random() * 90 + 5)}%`,
+  delay: `${(Math.random() * 8).toFixed(1)}s`,
+  duration: `${(7 + Math.random() * 6).toFixed(1)}s`,
+  size: Math.floor(Math.random() * 10 + 10),
+  opacity: (0.08 + Math.random() * 0.12).toFixed(2),
+}));
+
 export default function Home() {
   const [np, setNp] = useState<NowPlaying | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
@@ -99,6 +108,17 @@ export default function Home() {
     <main className="min-h-screen relative overflow-hidden">
       <div className="blob blob-1" />
       <div className="blob blob-2" />
+
+      {/* falling hearts */}
+      {FALLING_HEARTS.map(h => (
+        <div
+          key={h.id}
+          className="falling-heart"
+          style={{ left: h.left, animationDelay: h.delay, animationDuration: h.duration, opacity: Number(h.opacity) }}
+        >
+          <HeartFilled size={h.size} className="text-blush-400" />
+        </div>
+      ))}
 
       <div className="max-w-xl mx-auto p-6 relative z-10">
         <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center pt-8 pb-4">
@@ -180,6 +200,20 @@ export default function Home() {
         <Card delay={0.4} title="a note for today" center>
           <QuoteMark />
           <p className="font-serif italic text-xl md:text-2xl text-blush-500 leading-relaxed mt-1">{note || 'thinking of you, always.'}</p>
+        </Card>
+
+        {/* WATCH TOGETHER */}
+        <Card delay={0.45} title="we should watch">
+          <div className="flex items-center gap-4">
+            <IconTile>
+              <span className="text-3xl">📺</span>
+            </IconTile>
+            <div className="flex-1 min-w-0">
+              <p className="font-serif text-xl text-blush-500">The Office</p>
+              <p className="text-xs text-ink/55 mt-0.5">michael scott chaos + you = perfect night</p>
+            </div>
+            <span className="text-[11px] text-blush-400 bg-blush-50 border border-blush-200 px-2.5 py-1 rounded-full whitespace-nowrap">just saying 🤍</span>
+          </div>
         </Card>
 
         {/* SEND A KISS */}
