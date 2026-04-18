@@ -61,6 +61,7 @@ export default function Home() {
   const [note, setNote] = useState('');
   const [kissed, setKissed] = useState(false);
   const [liveProgress, setLiveProgress] = useState(0);
+  const [lyrics, setLyrics] = useState<string[]>([]);
   const fetchedAtRef = React.useRef<number>(0);
 
   const target = config?.countdownTarget || new Date(Date.now() + 86400000 * 7).toISOString();
@@ -94,6 +95,15 @@ export default function Home() {
     }, 1000);
     return () => clearInterval(tick);
   }, [np]);
+
+  useEffect(() => {
+    if (!np?.title || !np?.artist || !np?.isPlaying) { setLyrics([]); return; }
+    setLyrics([]);
+    fetch(`/api/lyrics?artist=${encodeURIComponent(np.artist)}&title=${encodeURIComponent(np.title)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.lines) setLyrics(d.lines); })
+      .catch(() => {});
+  }, [np?.title]);
 
   async function sendKiss(e: React.MouseEvent<HTMLButtonElement>) {
     setKissed(true);
@@ -188,6 +198,17 @@ export default function Home() {
                     <div className="flex justify-between text-[10px] text-ink/40 mt-1.5 tabular-nums">
                       <span>{fmt(liveProgress)}</span><span>{fmt(np.durationMs)}</span>
                     </div>
+                    {lyrics.length > 0 && (() => {
+                      const msPerLine = np.durationMs / lyrics.length;
+                      const cur = Math.min(Math.floor(liveProgress / msPerLine), lyrics.length - 1);
+                      return (
+                        <div className="mt-3 text-center space-y-1 px-1">
+                          {cur > 0 && <p className="text-[11px] text-ink/30 truncate">{lyrics[cur - 1]}</p>}
+                          <p className="text-sm font-medium text-blush-500 truncate">{lyrics[cur]}</p>
+                          {cur < lyrics.length - 1 && <p className="text-[11px] text-ink/30 truncate">{lyrics[cur + 1]}</p>}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </motion.div>
