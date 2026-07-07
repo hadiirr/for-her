@@ -8,6 +8,10 @@ type Config = {
   herName: string;
   countdownLabel: string;
   countdownTarget: string;
+  togetherSince: string;
+  watchTitle: string;
+  watchNote: string;
+  secretMessage: string;
   showMusic: boolean;
   theme: 'blush' | 'lavender' | 'sage' | 'sunset';
 };
@@ -426,9 +430,15 @@ function SettingsTab({ secret, flash }: { secret: string; flash: (m: string) => 
   return (
     <div className="space-y-4">
       <Card title="who's it for">
-        <Label>her name</Label>
+        <Label>her name (or pet name)</Label>
         <input value={c.herName} onChange={(e) => setC({ ...c, herName: e.target.value })}
+          placeholder="e.g. bubs, pretty girl, her actual name"
+          className="w-full rounded-xl px-3 py-2.5 bg-white/70 border border-blush-200 outline-none focus:border-blush-400 mb-3" />
+        <Label>together since</Label>
+        <input type="date" value={c.togetherSince ? c.togetherSince.slice(0, 10) : ''}
+          onChange={(e) => setC({ ...c, togetherSince: e.target.value })}
           className="w-full rounded-xl px-3 py-2.5 bg-white/70 border border-blush-200 outline-none focus:border-blush-400" />
+        <p className="text-[11px] text-blush-400/70 mt-1.5">shows a &ldquo;day N of us ♡&rdquo; counter under the title. leave empty to hide.</p>
       </Card>
 
       <Card title="countdown">
@@ -439,6 +449,27 @@ function SettingsTab({ secret, flash }: { secret: string; flash: (m: string) => 
         <input type="datetime-local" value={localValue}
           onChange={(e) => setC({ ...c, countdownTarget: e.target.value })}
           className="w-full rounded-xl px-3 py-2.5 bg-white/70 border border-blush-200 outline-none focus:border-blush-400" />
+      </Card>
+
+      <Card title="we should watch">
+        <Label>show / movie</Label>
+        <input value={c.watchTitle ?? ''} onChange={(e) => setC({ ...c, watchTitle: e.target.value })}
+          placeholder="e.g. The Office"
+          className="w-full rounded-xl px-3 py-2.5 bg-white/70 border border-blush-200 outline-none focus:border-blush-400 mb-3" />
+        <Label>little pitch</Label>
+        <input value={c.watchNote ?? ''} onChange={(e) => setC({ ...c, watchNote: e.target.value })}
+          placeholder="e.g. michael scott chaos + you = perfect night"
+          className="w-full rounded-xl px-3 py-2.5 bg-white/70 border border-blush-200 outline-none focus:border-blush-400" />
+        <p className="text-[11px] text-blush-400/70 mt-1.5">leave the title empty to hide the card.</p>
+      </Card>
+
+      <Card title="hidden surprise">
+        <Label>secret message</Label>
+        <textarea value={c.secretMessage ?? ''} onChange={(e) => setC({ ...c, secretMessage: e.target.value })}
+          rows={3} maxLength={300}
+          placeholder="something just for her…"
+          className="w-full rounded-xl px-3 py-2.5 bg-white/70 border border-blush-200 outline-none focus:border-blush-400 resize-none" />
+        <p className="text-[11px] text-blush-400/70 mt-1.5">she unlocks it by tapping the big title on her page 5 times. 🤫</p>
       </Card>
 
       <Card title="modules">

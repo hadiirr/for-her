@@ -18,6 +18,10 @@ export type Config = {
   herName: string;
   countdownLabel: string;
   countdownTarget: string; // ISO datetime
+  togetherSince: string;   // ISO date; '' hides the "day N of us" counter
+  watchTitle: string;      // '' hides the "we should watch" card
+  watchNote: string;
+  secretMessage: string;   // revealed by tapping the title 5 times
   showMusic: boolean;
   theme: 'blush' | 'lavender' | 'sage' | 'sunset';
 };
@@ -47,6 +51,10 @@ const DEFAULT: DataShape = {
     herName: 'my love',
     countdownLabel: 'our next date',
     countdownTarget: new Date(Date.now() + 7 * 86400000).toISOString(),
+    togetherSince: '',
+    watchTitle: 'The Office',
+    watchNote: 'michael scott chaos + you = perfect night',
+    secretMessage: 'you found it. i love you more than this little page could ever say.',
     showMusic: true,
     theme: 'blush',
   },
@@ -80,18 +88,24 @@ async function kv(command: (string | number)[]) {
   return res.json();
 }
 
+// merge stored data over defaults; config is merged one level deep so
+// fields added in newer versions still get their default values
+function withDefaults(parsed: Partial<DataShape>): DataShape {
+  return { ...DEFAULT, ...parsed, config: { ...DEFAULT.config, ...(parsed.config || {}) } };
+}
+
 async function loadAll(): Promise<DataShape> {
   if (useKV) {
     try {
       const r = await kv(['GET', 'data']);
-      if (r.result) return { ...DEFAULT, ...JSON.parse(r.result) };
+      if (r.result) return withDefaults(JSON.parse(r.result));
     } catch {}
     return DEFAULT;
   }
   if (memory) return memory;
   try {
     if (fs.existsSync(LOCAL_FILE)) {
-      memory = { ...DEFAULT, ...JSON.parse(fs.readFileSync(LOCAL_FILE, 'utf8')) };
+      memory = withDefaults(JSON.parse(fs.readFileSync(LOCAL_FILE, 'utf8')));
       return memory!;
     }
   } catch {}

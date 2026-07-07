@@ -6,7 +6,10 @@ A soft, romantic personal status page with a full admin dashboard. Shows your gi
 - what you're **listening to** (live from Spotify with a progress bar)
 - a **daily love note** (rotates from a list you manage)
 - a **countdown** to your next date (configurable label & date)
-- a **send-a-kiss** button that pings the server with floating hearts
+- a **"day N of us ♡" counter** and a time-of-day greeting with her name
+- a **send-a-kiss** button with floating hearts and a running kiss count
+- tiny hearts that float up from **wherever she taps**
+- a **hidden secret message** revealed by tapping the title 5 times
 
 You manage all of it from `/admin` — a four-tab dashboard with a live preview of her page.
 
@@ -45,8 +48,11 @@ Visit `/admin`, enter your `ADMIN_SECRET` once (it's saved per-device in localSt
 - Notes are stored as a list and changes persist immediately
 
 ### 🌸 settings
-- Her name (header text)
+- Her name / pet name (header text + greeting)
+- **Together since** date — shows a "day N of us ♡" counter under the title
 - Countdown label + date/time picker
+- **We should watch** card — pick the show/movie + a little pitch (empty title hides the card)
+- **Hidden surprise** — a secret message she unlocks by tapping the big title 5 times 🤫
 - Toggle the now-playing card on/off (useful if Spotify isn't set up)
 - Theme picker (blush, lavender, sage, sunset — currently scaffolded; ships with blush)
 

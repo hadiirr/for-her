@@ -19,6 +19,10 @@ type Config = {
   herName: string;
   countdownLabel: string;
   countdownTarget: string;
+  togetherSince: string;
+  watchTitle: string;
+  watchNote: string;
+  secretMessage: string;
   showMusic: boolean;
   theme: 'blush' | 'lavender' | 'sage' | 'sunset';
 };
@@ -42,6 +46,29 @@ function fmt(ms?: number) {
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
+function greetingFor(hour: number, name: string) {
+  if (hour < 5)  return `🌙 up late, ${name}?`;
+  if (hour < 12) return `☀️ good morning, ${name}`;
+  if (hour < 17) return `🌤️ good afternoon, ${name}`;
+  if (hour < 22) return `🌆 good evening, ${name}`;
+  return `🌙 sweet dreams soon, ${name}`;
+}
+
+const KISS_REPLIES = ['kiss sent! 💌', 'mwah, received 😚', 'caught it 🫶', 'that just made my whole day 💗'];
+
+function spawnHeart(x: number, y: number, size = 22) {
+  const el = document.createElement('div');
+  el.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="#e37a92"><path d="M12 21s-7-4.5-7-10a4.5 4.5 0 0 1 8.5-2A4.5 4.5 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg>`;
+  el.style.cssText = `position:fixed; left:${x}px; top:${y}px; pointer-events:none; opacity:0; transition:all 1.6s ease-out; z-index:50;`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.opacity = '1';
+    el.style.transform = `translateY(-${80 + Math.random() * 60}px) scale(${1 + Math.random() * 0.5}) rotate(${Math.random() * 30 - 15}deg)`;
+    setTimeout(() => { el.style.opacity = '0'; }, 1100);
+  });
+  setTimeout(() => el.remove(), 1800);
+}
+
 const SYMBOLS = ['💕', '🩷', '💗', '💓', '💞', '🌸', '✨', '💝', '🫧', '💫'];
 const FALLING_HEARTS = Array.from({ length: 16 }, (_, i) => ({
   id: i,
@@ -60,9 +87,15 @@ export default function Home() {
   const [config, setConfig] = useState<Config | null>(null);
   const [note, setNote] = useState('');
   const [kissed, setKissed] = useState(false);
+  const [kissMsg, setKissMsg] = useState(KISS_REPLIES[0]);
+  const [kissTotal, setKissTotal] = useState<number | null>(null);
+  const [greet, setGreet] = useState('');
+  const [secretOpen, setSecretOpen] = useState(false);
   const [liveProgress, setLiveProgress] = useState(0);
   const [lyrics, setLyrics] = useState<string[]>([]);
   const fetchedAtRef = React.useRef<number>(0);
+  const tapCount = React.useRef(0);
+  const tapTimer = React.useRef<ReturnType<typeof setTimeout>>();
 
   const target = config?.countdownTarget || new Date(Date.now() + 86400000 * 7).toISOString();
   const { days, hours, minutes, seconds } = useCountdown(target);
@@ -70,13 +103,16 @@ export default function Home() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [n, s, c, nt] = await Promise.all([
+        const [n, s, c, nt, k] = await Promise.all([
           fetch('/api/now-playing').then(r => r.json()),
           fetch('/api/status').then(r => r.json()),
           fetch('/api/config').then(r => r.json()),
           fetch('/api/notes?today=1').then(r => r.json()),
+          fetch('/api/kiss').then(r => r.json()),
         ]);
         setNp(n); setStatus(s); setConfig(c); setNote(nt.note || '');
+        if (typeof k?.total === 'number') setKissTotal(k.total);
+        setGreet(greetingFor(new Date().getHours(), c?.herName || 'my love'));
         fetchedAtRef.current = Date.now();
         setLiveProgress(n?.progressMs || 0);
         if (c?.theme) document.documentElement.setAttribute('data-theme', c.theme);
@@ -107,27 +143,54 @@ export default function Home() {
 
   async function sendKiss(e: React.MouseEvent<HTMLButtonElement>) {
     setKissed(true);
+    setKissMsg(KISS_REPLIES[Math.floor(Math.random() * KISS_REPLIES.length)]);
     const r = e.currentTarget.getBoundingClientRect();
     for (let i = 0; i < 6; i++) {
-      const el = document.createElement('div');
-      el.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="#e37a92"><path d="M12 21s-7-4.5-7-10a4.5 4.5 0 0 1 8.5-2A4.5 4.5 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg>';
-      el.style.cssText = `position:fixed; left:${r.left + r.width/2 + (Math.random()*40-20)}px; top:${r.top}px; pointer-events:none; opacity:0; transition:all 1.6s ease-out; z-index:50;`;
-      document.body.appendChild(el);
-      requestAnimationFrame(() => {
-        el.style.opacity = '1';
-        el.style.transform = `translateY(-100px) scale(${1 + Math.random()*0.5})`;
-        setTimeout(() => { el.style.opacity = '0'; }, 1100);
-      });
-      setTimeout(() => el.remove(), 1800);
+      spawnHeart(r.left + r.width / 2 + (Math.random() * 40 - 20), r.top);
     }
-    fetch('/api/kiss', { method: 'POST' });
-    setTimeout(() => setKissed(false), 2000);
+    fetch('/api/kiss', { method: 'POST' })
+      .then(res => res.json())
+      .then(d => { if (typeof d?.total === 'number') setKissTotal(d.total); })
+      .catch(() => {});
+    setTimeout(() => setKissed(false), 2500);
   }
+
+  // a tiny heart floats up from wherever she taps
+  function handlePageTap(e: React.MouseEvent) {
+    const t = e.target as HTMLElement;
+    if (t.closest('button, a, input, textarea')) return;
+    spawnHeart(e.clientX - 8, e.clientY - 8, 16);
+  }
+
+  // tap the title 5 times → heart burst + secret message
+  function handleTitleTap() {
+    tapCount.current += 1;
+    clearTimeout(tapTimer.current);
+    tapTimer.current = setTimeout(() => { tapCount.current = 0; }, 1500);
+    if (tapCount.current >= 5) {
+      tapCount.current = 0;
+      for (let i = 0; i < 14; i++) {
+        setTimeout(() => spawnHeart(
+          window.innerWidth * (0.15 + Math.random() * 0.7),
+          window.innerHeight * (0.25 + Math.random() * 0.5),
+          18 + Math.random() * 14
+        ), i * 60);
+      }
+      setTimeout(() => setSecretOpen(true), 500);
+    }
+  }
+
+  const daysTogether = React.useMemo(() => {
+    if (!config?.togetherSince) return null;
+    const t = new Date(config.togetherSince).getTime();
+    if (isNaN(t) || t > Date.now()) return null;
+    return Math.floor((Date.now() - t) / 86400000) + 1;
+  }, [config?.togetherSince]);
 
   const dateStr = new Date(target).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
-    <main className="min-h-screen relative overflow-hidden">
+    <main className="min-h-screen relative overflow-hidden" onClick={handlePageTap}>
       <div className="blob blob-1" />
       <div className="blob blob-2" />
 
@@ -151,10 +214,20 @@ export default function Home() {
             <Sparkle />
             <span className="w-8 h-px bg-blush-300" />
           </div>
-          <h1 className="font-serif text-5xl md:text-6xl text-blush-500 leading-none">
+          <h1 onClick={handleTitleTap} className="font-serif text-5xl md:text-6xl text-blush-500 leading-none cursor-pointer select-none">
             a little <em className="italic text-blush-400 font-normal">window</em>
           </h1>
           <p className="text-xs text-blush-400/70 tracking-[0.14em] mt-3 lowercase">into what i&apos;m doing, right now</p>
+          {(greet || daysTogether !== null) && (
+            <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
+              {greet && (
+                <span className="text-[11px] text-blush-500 bg-white/40 border border-blush-200 px-3 py-1 rounded-full">{greet}</span>
+              )}
+              {daysTogether !== null && (
+                <span className="text-[11px] text-blush-500 bg-blush-100 border border-blush-200 px-3 py-1 rounded-full">day {daysTogether.toLocaleString()} of us ♡</span>
+              )}
+            </div>
+          )}
         </motion.header>
 
         {/* STATUS */}
@@ -239,18 +312,20 @@ export default function Home() {
         </Card>
 
         {/* WATCH TOGETHER */}
-        <Card delay={0.45} title="we should watch">
-          <div className="flex items-center gap-4">
-            <IconTile>
-              <span className="text-3xl">📺</span>
-            </IconTile>
-            <div className="flex-1 min-w-0">
-              <p className="font-serif text-xl text-blush-500">The Office</p>
-              <p className="text-xs text-ink/55 mt-0.5">michael scott chaos + you = perfect night</p>
+        {(!config || config.watchTitle) && (
+          <Card delay={0.45} title="we should watch">
+            <div className="flex items-center gap-4">
+              <IconTile>
+                <span className="text-3xl">📺</span>
+              </IconTile>
+              <div className="flex-1 min-w-0">
+                <p className="font-serif text-xl text-blush-500">{config?.watchTitle || 'The Office'}</p>
+                <p className="text-xs text-ink/55 mt-0.5">{config?.watchNote || ''}</p>
+              </div>
+              <span className="text-[11px] text-blush-400 bg-blush-50 border border-blush-200 px-2.5 py-1 rounded-full whitespace-nowrap">just saying 🤍</span>
             </div>
-            <span className="text-[11px] text-blush-400 bg-blush-50 border border-blush-200 px-2.5 py-1 rounded-full whitespace-nowrap">just saying 🤍</span>
-          </div>
-        </Card>
+          </Card>
+        )}
 
         {/* SEND A KISS */}
         <Card delay={0.5}>
@@ -258,7 +333,11 @@ export default function Home() {
             <IconTile><HeartFilled /></IconTile>
             <div className="flex-1">
               <p className="font-serif text-xl text-blush-500">send a kiss</p>
-              <p className="text-xs text-ink/55">{kissed ? 'kiss sent! 💌' : 'tap to let me know you\'re here'}</p>
+              <p className="text-xs text-ink/55">
+                {kissed ? kissMsg
+                  : kissTotal ? `${kissTotal.toLocaleString()} kisses and counting · one more?`
+                  : 'tap to let me know you\'re here'}
+              </p>
             </div>
             <button onClick={sendKiss}
               className="rounded-full px-5 py-2.5 bg-gradient-to-r from-blush-400 to-blush-500 hover:from-blush-500 hover:to-blush-600 text-white text-sm font-medium shadow-lg shadow-blush-300/40 transition flex items-center gap-2">
@@ -269,8 +348,33 @@ export default function Home() {
 
         <footer className="text-center pt-3 pb-6">
           <p className="text-[11px] text-ink/40 font-serif italic">made with <HeartFilled size={11} className="inline -mt-0.5 text-blush-400" /> · refreshes every 20s</p>
+          <p className="text-[10px] text-ink/25 font-serif italic mt-1">psst… the big title is keeping a secret</p>
         </footer>
       </div>
+
+      {/* SECRET MESSAGE */}
+      <AnimatePresence>
+        {secretOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 flex items-center justify-center bg-blush-500/20 backdrop-blur-sm p-6 cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); setSecretOpen(false); }}
+          >
+            <motion.div
+              initial={{ scale: 0.85, y: 18 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+              className="glass rounded-3xl p-8 max-w-sm text-center"
+            >
+              <HeartFilled size={34} className="mx-auto text-blush-400 mb-3" />
+              <p className="text-[11px] uppercase tracking-[0.2em] text-blush-400 mb-2">you found the secret</p>
+              <p className="font-serif italic text-xl text-blush-500 leading-relaxed">
+                {config?.secretMessage || 'i love you more than this little page could ever say.'}
+              </p>
+              <p className="text-[11px] text-ink/40 mt-5">tap anywhere to tuck it away again</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
