@@ -134,12 +134,14 @@ export default function Home() {
 
   useEffect(() => {
     if (!np?.title || !np?.artist || !np?.isPlaying) { setLyrics([]); return; }
+    let cancelled = false;
     setLyrics([]);
     fetch(`/api/lyrics?artist=${encodeURIComponent(np.artist)}&title=${encodeURIComponent(np.title)}`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.lines) setLyrics(d.lines); })
+      .then(d => { if (!cancelled && d?.lines) setLyrics(d.lines); })
       .catch(() => {});
-  }, [np?.title]);
+    return () => { cancelled = true; };
+  }, [np?.title, np?.artist, np?.isPlaying]);
 
   async function sendKiss(e: React.MouseEvent<HTMLButtonElement>) {
     setKissed(true);
